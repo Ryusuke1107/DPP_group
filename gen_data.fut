@@ -17,7 +17,7 @@ def main : []i32 =
     let (_, vals) = unzip( map(\rng -> rand_i32.rand (minval,maxval) rng) rngs)
     in vals
 
-def gen_uniform_rand (num_elems : i32) (seed : i32) : []i32 = 
+def gen_uniform_rand (num_elems : i64) (seed : i32) : []i32 = 
 
     let (minval, maxval) = (-1000000, 1000000)
     let rng = minstd_rand.rng_from_seed [seed]
@@ -26,7 +26,7 @@ def gen_uniform_rand (num_elems : i32) (seed : i32) : []i32 =
     let (_, vals) = unzip( map(\rng -> rand_i32.rand (minval,maxval) rng) rngs)
     in vals
 
-def gen_norm_rand (num_elems : i32) (seed : i32) (m: i32) (sdev: i32) : []i32 = 
+def gen_norm_rand (num_elems : i64) (seed : i32) (m: f32) (sdev: f32) : []i32 = 
 
     let rng = minstd_rand.rng_from_seed [seed]
 

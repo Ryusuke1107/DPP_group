@@ -2,8 +2,8 @@ import "lib/github.com/diku-dk/cpprandom/random"
 import "lib/github.com/diku-dk/sorts/radix_sort"
 import "equal_test"
 
-let nl:i64 = 16
-let a:i64 = 100
+let nl:i64 = 1024 -- we might have to change this value according to our PC
+let a:i64 = 1024 -- we might have to change this value according to our PC
 
 module rng_engine = minstd_rand
 module rand_i64 = uniform_int_distribution i64 rng_engine
@@ -32,7 +32,12 @@ def less_than_test 't [n] (hash: t -> i64)(A: [n]t): [n]t =
    in A_sorted
 
 def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t = 
-   let l:i64 = n/5000
+   let Basecase [m] (hash: t -> i64)(A: [m]t):[m]t = 
+      if is_equal_test then equal_test hash A else less_than_test hash A
+    
+   in if n < a then Basecase hash A else
+
+   let l:i64 = n/500 -- we might have to change this value according to our PC
    let semisort_step 't [n'] (hash: t -> i64)(A: [n']t): ([n']t, []i64) =
       let nllogn' = nl * (log10 n')
       let samplerngs = minstd_rand.rng_from_seed [(i32.i64 (2023*n'+124))] |> minstd_rand.split_rng nllogn'
@@ -88,11 +93,7 @@ def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t =
 
       let T_Idx_flattened = map(\i -> (flatten T_Idx)[i])(iota n')
       in (scatter (copy A) T_Idx_flattened A, offsets[:1025])
-   
-   let Basecase [m] (hash: t -> i64)(A: [m]t):[m]t = 
-      if is_equal_test then equal_test hash A else less_than_test hash A
 
-   in if n < a then Basecase hash A else
    let (Light_keys, offsets) = semisort_step hash A
    let sorted = Light_keys[(last offsets):]
    let dummy_ne = head A
@@ -117,4 +118,3 @@ def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t =
                                          |> head
    let result = concat Light_sorted sorted
    in map(\i -> result[i])(iota n)
-

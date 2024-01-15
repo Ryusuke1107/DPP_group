@@ -41,12 +41,11 @@ def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t =
    let semisort_step 't [n'] (hash: t -> i64)(A: [n']t): ([n']t, []i64) =
       let nllogn' = nl * (log10 n')
       let samplerngs = minstd_rand.rng_from_seed [(i32.i64 (2023*n'+124))] |> minstd_rand.split_rng nllogn'
-      let sample:[]t = []
-      let (sample, _) = loop A_with_idx = (copy sample, copy A) for i < nllogn' do
+      let (sample, _) = loop A_with_idx:([]t, []t) = ([], copy A) for i < nllogn' do
                         let (_, idx) = rand_i64.rand(0i64, (n'-i-1)) samplerngs[i]
                         let (sample', A') = copy A_with_idx
                         let sample_new = concat sample' [A'[idx]]
-                        let A_new = if idx == (n'-i-1) then A'[0:idx] else concat A'[0:idx] A'[(idx+1):(n'-i)]
+                        let A_new = concat A'[0:idx] A'[(idx+1):(n'-i)]
                         in (sample_new, A_new)
 
       let keys = loop sample = copy sample for i < nllogn' do
@@ -62,7 +61,7 @@ def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t =
       let nH = length Heavy_keys
 
       let Heavy (v:t) : i64 = 
-         let Searched = map(\i -> if Heavy_keys_hashed[i] == (hash v) then i else -1) (iota (length Heavy_keys))
+         let Searched = map(\i -> if Heavy_keys_hashed[i] == (hash v) then i else -1) (iota nH)
          let Filtered = filter (>=0) Searched
          in Filtered[0] + nl
 
@@ -82,12 +81,12 @@ def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t =
 
       let offsets = X[0]
 
-      let (T_Idx, _) = map(\i -> loop arr = ((replicate l (0:i64)), (flatten (copy X))) for j < l do 
+      let (T_Idx, _) = map(\i -> loop arr = ((replicate l (0:i64)), (copy X)[i]) for j < l do 
                            if (j+(i*l)) > n'-1 then copy arr else 
                            let id = GetBucketId A[j+(i*l)]
                            let (Idx, X') = copy arr
-                           let Idxnew = Idx with [j] = X'[i*(nl+nH) + id]
-                           let Xnew = X' with [i*(nl+nH) + id] = X'[i*(nl+nH) + id] + 1
+                           let Idxnew = Idx with [j] = X'[id]
+                           let Xnew = X' with [id] = X'[id] + 1
                            in (Idxnew, Xnew)) (iota ((n'/l)+1))
                         |> unzip
 

@@ -45,7 +45,7 @@ def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t =
                         let (_, idx) = rand_i64.rand(0i64, (n'-i-1)) samplerngs[i]
                         let (sample', A') = copy A_with_idx
                         let sample_new = concat sample' [A'[idx]]
-                        let A_new = if idx == (n'-i-1) then A'[0:idx] else concat A'[0:idx] A'[(idx+1):(n'-i)]
+                        let A_new = concat A'[0:idx] A'[(idx+1):(n'-i)]
                         in (sample_new, A_new)
 
       let keys = loop sample = copy sample for i < nllogn' do

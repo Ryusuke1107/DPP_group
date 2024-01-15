@@ -109,7 +109,7 @@ def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t =
                                          |> concat rest_sorted
                                          |> concat (replicate offsets[i] dummy_ne)
         in concat temp_A_matrix (map(\j -> A'_sorted_new[j])(iota (last offsets)))
-   let A_matrix = unflatten( A_matrix_dimensionless :> [((length offsets)-1) * (last offsets)]t)
+   let A_matrix = unflatten( A_matrix_dimensionless :> [nl * (last offsets)]t)
    let Add(x:t)(y:t) :t = if (hash x) == (hash dummy_ne) then y else x 
    let Light_sorted = transpose A_matrix |> map(\arr -> [reduce Add dummy_ne arr])
                                          |> transpose 

@@ -93,8 +93,7 @@ def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t =
 
    let (Light_keys, offsets) = semisort_step hash A
    let sorted = Light_keys[(last offsets):]
-   let dummy_ne = head A
-   let A_matrix_dimensionless = 
+   let Light_sorted = 
       loop temp_A_matrix = [] for i < nl do
         let A' = Light_keys[offsets[i]:offsets[i+1]]
         let (rest, A'_sorted) =
@@ -105,15 +104,8 @@ def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t =
                 let new_sorted = concat arr'[(last offsets'):] sorted
                 in (new_arr, new_sorted)
          let rest_sorted = Basecase hash rest
-         let A'_sorted_new = concat A'_sorted (replicate ((last offsets) - offsets[i+1]) dummy_ne) 
-                                         |> concat rest_sorted
-                                         |> concat (replicate offsets[i] dummy_ne)
-        in concat temp_A_matrix (map(\j -> A'_sorted_new[j])(iota (last offsets)))
-   let A_matrix = unflatten( A_matrix_dimensionless :> [nl * (last offsets)]t)
-   let Add(x:t)(y:t) :t = if (hash x) == (hash dummy_ne) then y else x 
-   let Light_sorted = transpose A_matrix |> map(\arr -> [reduce Add dummy_ne arr])
-                                         |> transpose 
-                                         |> head
+         let A'_sorted_new = concat rest_sorted A'_sorted 
+        in concat temp_A_matrix A'_sorted_new
    let result = concat Light_sorted sorted
    in map(\i -> result[i])(iota n)
 

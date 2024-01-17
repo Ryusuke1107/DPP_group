@@ -55,14 +55,14 @@ def less_than_test 't [n] (hash: t -> i64)(A: [n]t): [n]t =
    in A_sorted
 
 def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t = 
-   let nl:i64 = 1024 -- assuming the input size is 100000
-   let a:i64 = 5000 -- assuming the input size is 100000
+   let nl:i64 = 16 -- assuming the input size is 100000
+   let a:i64 = 4096 -- assuming the input size is 100000
    let Basecase [m] (hash: t -> i64)(A: [m]t):[m]t = 
       if is_equal_test then equal_test hash A else less_than_test hash A
     
    in if n < a then Basecase hash A else
 
-   let l:i64 = n/500 -- assuming the input size is 100000
+   let l:i64 = n/20 -- assuming the input size is 100000
    let semisort_step 't [n'] (hash: t -> i64)(A: [n']t): ([n']t, []i64) =
 
    -- Step 1: Sampling and Bucketing

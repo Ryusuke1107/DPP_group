@@ -29,18 +29,18 @@ def equal_test 't [n] (hash: t -> i64)(A: [n]t): [n]t =
                        |> unflatten
                        |> transpose
    
-   let (T_Idx, _) = map(\i -> loop arr = ((replicate l (0:i64)), (flatten (copy X))) for j < l do 
+   let (T_Idx, _) = map(\i -> loop arr = ((replicate l (0:i64)), (copy X)[i]) for j < l do 
                            if (j+(i*l)) > n-1 then copy arr else 
                            let id = hash_table A[j+(i*l)]
                            let (Idx, X') = copy arr
-                           let Idxnew = Idx with [j] = X'[i*k + id]
-                           let Xnew = X' with [i*k + id] = X'[i*k + id] + 1
+                           let Idxnew = Idx with [j] = X'[id]
+                           let Xnew = X' with [id] = X'[id] + 1
                            in (Idxnew, Xnew)) (iota ((n/l)+1))
                         |> unzip
 
    let T_Idx_flattened = map(\i -> (flatten T_Idx)[i])(iota n)
    in scatter (copy A) T_Idx_flattened A
-
+   
 -- We use radix sort of the hashed value of the keys in less_than_test
 def less_than_test 't [n] (hash: t -> i64)(A: [n]t): [n]t =
    let keys = loop A = copy A for i < n do 
@@ -55,17 +55,14 @@ def less_than_test 't [n] (hash: t -> i64)(A: [n]t): [n]t =
    in A_sorted
 
 def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t = 
-    --input=10000, nl=8, a=128
-    --input=100000, nl=16, a=256
-    --inpu=1000000, nl=32, a=1024
-   let nl:i64 = 16 -- assuming the input size is 100000
+   let nl:i64 = 64 -- assuming the input size is 100000
    let a:i64 = 4096 -- assuming the input size is 100000
    let Basecase [m] (hash: t -> i64)(A: [m]t):[m]t = 
       if is_equal_test then equal_test hash A else less_than_test hash A
     
    in if n < a then Basecase hash A else
 
-   let l:i64 = n/20 -- assuming the input size is 100000
+   let l:i64 = n/31 -- assuming the input size is 100000
    let semisort_step 't [n'] (hash: t -> i64)(A: [n']t): ([n']t, []i64) =
 
    -- Step 1: Sampling and Bucketing
@@ -74,7 +71,7 @@ def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t =
       -- Get nllogn' random rngs here
       let samplerngs = minstd_rand.rng_from_seed [(i32.i64 (2023*n'+124))] |> minstd_rand.split_rng nllogn'
       
-      -- Get nllogn' random samples. In order to avoid sampling the same index key in duplicate, we use for loop
+      -- Get nllogn' random samples. In order to avoid sampling the same key in duplicate, we use for loop
       -- and in each loop we take one random key from the array.
       let (sample, _) = loop A_with_idx = ([], copy A) for i < nllogn' do
                         let (_, idx) = rand_i64.rand(0i64, (n'-i-1)) samplerngs[i]

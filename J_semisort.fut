@@ -71,7 +71,7 @@ def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t =
       -- Get nllogn' random rngs here
       let samplerngs = minstd_rand.rng_from_seed [(i32.i64 (2023*n'+124))] |> minstd_rand.split_rng nllogn'
       
-      -- Get nllogn' random samples. In order to avoid sampling the same key in duplicate, we use for loop
+      -- Get nllogn' random samples. In order to avoid sampling the same index key in duplicate, we use for loop
       -- and in each loop we take one random key from the array.
       let (sample, _) = loop A_with_idx = ([], copy A) for i < nllogn' do
                         let (_, idx) = rand_i64.rand(0i64, (n'-i-1)) samplerngs[i]

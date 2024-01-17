@@ -55,6 +55,9 @@ def less_than_test 't [n] (hash: t -> i64)(A: [n]t): [n]t =
    in A_sorted
 
 def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t = 
+    --input=10000, nl=8, a=128
+    --input=100000, nl=16, a=256
+    --inpu=1000000, nl=32, a=1024
    let nl:i64 = 16 -- assuming the input size is 100000
    let a:i64 = 4096 -- assuming the input size is 100000
    let Basecase [m] (hash: t -> i64)(A: [m]t):[m]t = 

@@ -47,15 +47,16 @@ def less_than_test 't [n] (hash: t -> i64)(A: [n]t): [n]t =
       if any(\x -> (hash x) == (hash A[0])) (drop 1 A) then drop 1 A else rotate 1 A 
    let A_hashed = map(\key -> hash key) A
    let A_hashed_sorted = radix_sort 64 i64.get_bit A_hashed
-   let A_sorted = map(\i -> let idx = map(\j -> if (hash keys[j]) == i then j else -1)(iota (length keys))
+   let hash_rev (hashed: i64): t =
+      let idx = map(\j -> if (hash keys[j]) == hashed then j else -1)(iota (length keys))
                                        |> filter (>=0)
                                        |> head
-                            in keys[idx]
-                  ) A_hashed_sorted
+      in keys[idx]
+   let A_sorted = map(\hashed -> hash_rev hashed) A_hashed_sorted
    in A_sorted
 
 def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t = 
-   let nl:i64 = 64 -- assuming the input size is 100000
+   let nL:i64 = 64 -- assuming the input size is 100000
    let a:i64 = 4096 -- assuming the input size is 100000
    let Basecase [m] (hash: t -> i64)(A: [m]t):[m]t = 
       if is_equal_test then equal_test hash A else less_than_test hash A
@@ -66,14 +67,14 @@ def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t =
    let semisort_step 't [n'] (hash: t -> i64)(A: [n']t): ([n']t, []i64) =
 
    -- Step 1: Sampling and Bucketing
-      let nllogn' = i64.f64 (f64.i64 nl * (intrinsics.log10_64 (f64.i64 n')))
+      let nLlogn' = i64.f64 (f64.i64 nL * (intrinsics.log10_64 (f64.i64 n')))
 
-      -- Get nllogn' random rngs here
-      let samplerngs = minstd_rand.rng_from_seed [(i32.i64 (2023*n'+124))] |> minstd_rand.split_rng nllogn'
+      -- Get nLlogn' random rngs here
+      let samplerngs = minstd_rand.rng_from_seed [(i32.i64 (2023*n'+124))] |> minstd_rand.split_rng nLlogn'
       
-      -- Get nllogn' random samples. In order to avoid sampling the same key in duplicate, we use for loop
+      -- Get nLlogn' random samples. In order to avoid sampling the same key in duplicate, we use for loop
       -- and in each loop we take one random key from the array.
-      let (sample, _) = loop A_with_idx = ([], copy A) for i < nllogn' do
+      let (sample, _) = loop A_with_idx = ([], copy A) for i < nLlogn' do
                         let (_, idx) = rand_i64.rand(0i64, (n'-i-1)) samplerngs[i]
                         let (sample', A') = copy A_with_idx
                         let sample_new = concat sample' [A'[idx]]
@@ -82,18 +83,21 @@ def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t =
 
       -- Collect the information about what kinds of keys the sample include. In each loop, if the head key
       -- of the sample is included in another index in the sample, drop the head value. If not, rotate 1 sample.
-      let keys = loop sample = copy sample for i < nllogn' do
+      let keys = loop sample = copy sample for i < nLlogn' do
          if any(\x -> (hash x) == (hash sample[0])) (drop 1 sample) then drop 1 sample else rotate 1 sample 
 
       -- Count the occurence of each key in the sample.
-      let logn = i64.f64 (intrinsics.log10_64 (f64.i64 n))
       let count:[]i64 = map(\j -> reduce (+) 0 (map (\x -> if (hash x) == (hash j) then 1 else 0) sample)) keys
       
-      -- If the occurence of each key is more than logn, the key is stored in Heavy_keys. 
-      let Heavy_Index = map(\i -> if count[i] > logn then i+1 else 0) (iota (length keys)) 
-                           |> filter (!=0) 
-                           |> map (\i -> i-1)
-      let Heavy_keys = if (length Heavy_Index) == 0 then [head keys] else map(\i -> keys[i]) Heavy_Index
+      -- If the occurence of each key is more than logn, the key is stored in Heavy_keys.
+      let logn = i64.f64 (intrinsics.log10_64 (f64.i64 n)) 
+      let Heavy_Index = map(\i -> if count[i] > logn then i else -1) (iota (length keys)) 
+                           |> filter (>=0)
+      let Heavy_keys = if (length Heavy_Index) != 0 then map(\i -> keys[i]) Heavy_Index
+                                                    else let max = i64.maximum count
+                                                         let tmp = map(\i -> if count[i] == max then i else -1)(iota (length keys)) 
+                                                                   |> filter (>=0)
+                                                         in [keys[head tmp]]
       let Heavy_keys_hashed = map(\i -> hash i) Heavy_keys
       let nH = length Heavy_keys
 
@@ -101,10 +105,10 @@ def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t =
       let Heavy (v:t) : i64 = 
          let Searched = map(\i -> if Heavy_keys_hashed[i] == (hash v) then i else -1) (iota nH)
          let Filtered = filter (>=0) Searched
-         in Filtered[0] + nl
+         in Filtered[0] + nL
 
       -- Light function takes a light key as input and assigns a corresponding bucket number to each key.
-      let Light (v:t) : i64 = (hash v) % nl
+      let Light (v:t) : i64 = (hash v) % nL
 
       -- GetBucketId takes an arbitrary key as input and applies Heavy function to the key if the key 
       -- is a heavy key, otherwise it applies light function to the key.
@@ -112,10 +116,10 @@ def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t =
 
    -- Step 2: Blocked Distributing
       
-      -- We count the number of records in each bucket in a (n'/l+1) × (nl + nH) matrix. We count the
+      -- We count the number of records in each bucket in a (n'/l+1) × (nL + nH) matrix. We count the
       -- occurence of the keys in each subarray and store in the corresponding location in C
       -- C[i][id]: records stored into bucket id in subarray 
-      let C = map(\i -> loop arr = (replicate (nl + nH) (0:i64)) for j < l do
+      let C = map(\i -> loop arr = (replicate (nL + nH) (0:i64)) for j < l do
                            if (j+i*l) > (n'-1) then copy arr else
                            let id = GetBucketId A[j+(i*l)]
                            in arr with [id] = arr[id] + 1) (iota ((n'/l)+1))
@@ -142,14 +146,14 @@ def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t =
       let T_Idx_flattened = map(\i -> (flatten T_Idx)[i])(iota n')
       in (scatter (copy A) T_Idx_flattened A, X[0])
 
-   let (Light_keys, offsets) = semisort_step hash A
-   let sorted = Light_keys[offsets[nl]:]
+   let (T, offsets) = semisort_step hash A
+   let sorted = T[offsets[nL]:]
 
    -- Step 3: Local Refining
    -- Take a light key for each bucket id, sort it, and merge it into temp_A_matrix 
    let Light_sorted = 
-      loop temp_A_matrix = [] for i < nl do
-        let A' = Light_keys[offsets[i]:offsets[i+1]]
+      loop temp_A_matrix = [] for i < nL do
+        let A' = T[offsets[i]:offsets[i+1]]
 
         -- Recursively apply the semisort_step function to the first element. The sorted part are
         -- combined into the second element, leaving the unsorted portions in the first element.
@@ -158,8 +162,8 @@ def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t =
             loop A = (copy A', []) while (length ((\(x,y) -> x)A)) > a do
                 let (arr, sorted) = copy A
                 let (arr', offsets') = semisort_step hash arr
-                let new_arr = arr'[:offsets'[nl]]
-                let new_sorted = concat arr'[offsets'[nl]:] sorted
+                let new_arr = arr'[:offsets'[nL]]
+                let new_sorted = concat arr'[offsets'[nL]:] sorted
                 in (new_arr, new_sorted)
 
          -- When the unsorted part is less than a, then apply it in Basecase.

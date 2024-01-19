@@ -1,4 +1,9 @@
-import "J_semisort"
+-- Benchmarking semisort with sample arrays
+-- ==
+-- input @ example_dataset_10000.txt
+-- auto output
+
+import "semisort"
 import "gen_data"
 def is_sorted 't (hash: t -> i64)(A:[]t): bool =
     let n = length A
@@ -43,3 +48,5 @@ entry test_less_than10000 (a:i32) = let d = gen_norm_rand 10000 a 5 10
 -- random input {i32} output{ true }
 entry test_less_than100000 (a:i32) = let d = gen_norm_rand 100000 a 20 1
                                  in semisort hash_for_i32 false d |> is_sorted_i32
+
+entry main (B:[]i32) = semisort hash_for_i32 false B

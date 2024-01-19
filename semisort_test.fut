@@ -1,5 +1,10 @@
-import "semisort"
+-- Benchmarking semisort with sample arrays
+-- ==
+-- input @ example_dataset_10000.txt
+-- auto output
 
+import "semisort"
+import "gen_data"
 def is_sorted 't (hash: t -> i64)(A:[]t): bool =
     let n = length A
     let tmp = map(\i -> map(\j -> if (hash A[j]) == (hash i) then j else -1)(iota n)) A
@@ -21,13 +26,27 @@ def is_sorted_i32 't (A:[]i32):bool = is_sorted hash_for_i32 A
 entry test_is_sorted (A:[]i32) = is_sorted_i32 A
 
 -- ==
--- entry: test_equal
--- compiled input { [1,2,1,2,3,2,1,3,2,1,3,42,13,32,2] } output { true }
-
-entry test_equal (A:[]i32) = semisort hash_for_i32 true A |> is_sorted_i32
+-- entry: test_equal10000
+-- random input {i32} output{ true }
+entry test_equal10000 (a:i32) = let d = gen_norm_rand 10000 a 0 2
+                                 in semisort hash_for_i32 true d |> is_sorted_i32
 
 -- ==
--- entry: test_lessthan
--- compiled input { [1,1,3,1,2,1,3,2,1,4,5,2,4,2,5,2,4,2] } output { true }
+-- entry: test_equal100000
+-- random input {i32} output{ true }
+entry test_equal100000 (a:i32) = let d = gen_norm_rand 100000 a 10 5
+                                 in semisort hash_for_i32 true d |> is_sorted_i32
 
-entry test_lessthan (A:[]i32) = semisort hash_for_i32 false A |> is_sorted_i32 
+-- ==
+-- entry: test_less_than10000
+-- random input {i32} output{ true }
+entry test_less_than10000 (a:i32) = let d = gen_norm_rand 10000 a 5 10
+                                 in semisort hash_for_i32 false d |> is_sorted_i32
+
+-- ==
+-- entry: test_less_than100000
+-- random input {i32} output{ true }
+entry test_less_than100000 (a:i32) = let d = gen_norm_rand 100000 a 20 1
+                                 in semisort hash_for_i32 false d |> is_sorted_i32
+
+entry main (B:[]i32) = semisort hash_for_i32 false B

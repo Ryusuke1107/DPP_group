@@ -70,7 +70,7 @@ def semisort 't [n] (hash: t -> i64)(is_equal_test: bool)(A: [n]t): [n]t =
       let nLlogn' = i64.f64 (f64.i64 nL * (intrinsics.log10_64 (f64.i64 n')))
 
       -- Get nLlogn' random rngs here
-      let samplerngs = minstd_rand.rng_from_seed [(i32.i64 (2023*n'+124))] |> minstd_rand.split_rng nLlogn'
+      let samplerngs = rng_engine.rng_from_seed [(i32.i64 (2023*n' % 124))] |> rng_engine.split_rng nLlogn'
       
       -- Get nLlogn' random samples. In order to avoid sampling the same key in duplicate, we use for loop
       -- and in each loop we take one random key from the array.
